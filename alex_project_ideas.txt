@@ -1,0 +1,21 @@
+#PROJECT IDEAS
+To get the best grade I think we should think outside the box. Alongside the
+usual stuff we are going to do I propose the following. We have 27 users each
+with varying amounts of activity recorded (in the range of 3000-20,000).
+I propose that for each user we try to learn an individual model to predict
+their mood for the following day. I would of course happily do this and I think
+it will really add something extra to our report.
+
+Rough outline of process:
+
+1. Generally pre-process the data; remove columns, drop null values, scale
+inputs etc.
+2. Build model: I will look at RNNs for this given that it is a time series. I
+will have to reshape the data somewhat to do this, but it shouldn't be too
+much hassle.
+3. Use some "good" hyper-parameters generally accepted in literature to train
+the models for each user. Obviously we will not be able to fully optimise the
+model architecture and so on given the time constraints but I am sure that if
+we explain this in the report it will be fine.
+4. Test the models! I will do a quick proof of concept for my idea and see if
+it works at all. If it works then we have a nice addition to our project!

@@ -42,7 +42,9 @@ def preprocess(dataframe):
                     .values.reshape(-1,1))
         else:
             continue
-            
+    for user in dataframe.id.unique():
+        print(user, len(dataframe[dataframe.id == user]))
+    # print(dataframe.id.unique())
     return dataframe
 def main(argv):
     try:
@@ -59,7 +61,7 @@ def main(argv):
     print('')
 
     dataframe = csv_to_dataframe(csv_name)
-    preprocess(dataframe)
+    new_df = preprocess(dataframe)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
