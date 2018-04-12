@@ -1,11 +1,8 @@
 import sys, getopt
-# import tensorflow
-# import keras
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-
-from utilities import csv_to_dataframe
+from utilities import csv_to_dataframe, write_dataframe_to_file
 
 def preprocess(dataframe):
     '''
@@ -42,10 +39,8 @@ def preprocess(dataframe):
                     .values.reshape(-1,1))
         else:
             continue
-    for user in dataframe.id.unique():
-        print(user, len(dataframe[dataframe.id == user]))
-    # print(dataframe.id.unique())
     return dataframe
+
 def main(argv):
     try:
         opts, args = getopt.getopt(argv, "h:c:", ["csv_name="])
@@ -62,6 +57,7 @@ def main(argv):
 
     dataframe = csv_to_dataframe(csv_name)
     new_df = preprocess(dataframe)
-
+    write_dataframe_to_file('rnn_dataframes/{}_preprocessed.pkl'\
+                            .format(csv_name), new_df)
 if __name__ == "__main__":
     main(sys.argv[1:])
