@@ -32,8 +32,18 @@ def run_rnn(dataframe):
     # Get single user, this is for multiple users
     # for user in dataframe.id.unique():
     #     print(user, len(dataframe[dataframe.id == user]))
+    first_user_df = dataframe[dataframe.id == 'AS14.01'].sort_index()
+    unique_variables = first_user_df.variable.unique()
+    # unique day dates
+    unique_dates = \
+            first_user_df.index.map(lambda x: x.strftime('%Y-%m-%d')).unique()
+    new_dataframe = pd.DataFrame(index=unique_dates, columns=unique_variables)
+    print(new_dataframe)
+    stop
+    for day in unique_dayofyear:
+        print(day)
 
-
+    stop
     list_of_onehots_x = [#'ChargePoint_skey',
                      'day_time_block']
     list_of_onehots_y = ['next_connection']
@@ -70,8 +80,8 @@ def main(argv):
             csv_name = arg
     print('')
 
-    dataframe = load_dataframe_to_file('rnn_dataframes/{}_preprocessed'\
-                                        .format(csv_name), new_df)
+    dataframe = load_dataframe_from_file('rnn_dataframes/{}_preprocessed.pkl'\
+                                        .format(csv_name))
     history = run_rnn(dataframe)
 
 if __name__ == "__main__":

@@ -39,6 +39,8 @@ def preprocess(dataframe):
                     .values.reshape(-1,1))
         else:
             continue
+    dataframe = dataframe.set_index(dataframe.time)
+    dataframe = dataframe.drop('time', axis=1)
     return dataframe
 
 def main(argv):
