@@ -53,10 +53,14 @@ def run_rnn(dataframe, user):
     #call - boolean. if a call is placed in the day then 1, else 0
     #sms - boolean. if an sms is placed in the day then 1, else 0
     Y_array = new_dataframe['mood'].values
-    X_array = new_dataframe.values
+    X_array = Y_array[1:]
+    X_array = np.append(X_array, 0)
+
+    # X_array = new_dataframe.values
     # Y = np.reshape(Y_array, (Y_array.shape[0], Y_array.shape[1]))
     Y = np.reshape(Y_array, (Y_array.shape[0], 1))
-    X = np.reshape(X_array, (X_array.shape[0], X_array.shape[1],1))
+    # X = np.reshape(X_array, (X_array.shape[0], X_array.shape[1],1))
+    X = np.reshape(X_array, (X_array.shape[0],1 ,1))
 
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, \
                                                             random_state=0)
@@ -65,7 +69,7 @@ def run_rnn(dataframe, user):
     history = \
        model_.fit(X_train, Y_train,
                   epochs=200,
-                  batch_size=1, 
+                  batch_size=1,
                   validation_data=(X_test,Y_test))
 
     return history
