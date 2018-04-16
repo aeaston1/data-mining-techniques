@@ -1,16 +1,14 @@
 import sys,getopt
 import numpy as np
 import pandas as pd
-from utilities import classifier, load_dataframe_from_file
+from utilities import classifier, load_dataframe_from_file, loss_acc_plots
 
 import tensorflow
 import keras
-from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import train_test_split
-from keras.models import Sequential
-from keras.layers import Dense, RNN, LSTM
 
-def run_rnn(dataframe):
+
+def run_rnn(dataframe, user):
     '''
     Run RNN model using dataframe input.
 
@@ -18,6 +16,8 @@ def run_rnn(dataframe):
     ----------
     dataframe : pandas dataframe
         input dataframe used for the training the model
+    user : string
+        string of the user to train the rnn model for
 
     Returns
     -------
@@ -30,39 +30,43 @@ def run_rnn(dataframe):
     '''
 
     # Get single user, this is for multiple users
-    # for user in dataframe.id.unique():
-    #     print(user, len(dataframe[dataframe.id == user]))
-    first_user_df = dataframe[dataframe.id == 'AS14.01'].sort_index()
+    first_user_df = dataframe[dataframe.id == '{}'.format(user)].sort_index()
     unique_variables = first_user_df.variable.unique()
+    aggregate_variables = np.delete(unique_variables,0)
+    aggregate_variables = np.delete(aggregate_variables,0)
+
     # unique day dates
     unique_dates = \
             first_user_df.index.map(lambda x: x.strftime('%Y-%m-%d')).unique()
+    unique_dates = pd.to_datetime(unique_dates)
     new_dataframe = pd.DataFrame(index=unique_dates, columns=unique_variables)
-    print(new_dataframe)
-    stop
-    for day in unique_dayofyear:
-        print(day)
 
-    stop
-    list_of_onehots_x = [#'ChargePoint_skey',
-                     'day_time_block']
-    list_of_onehots_y = ['next_connection']
-    Y_cols = [x for x in dataframe.columns.tolist() \
-        for y in list_of_onehots_y if x.startswith(y)]
-    X_cols = [x for x in dataframe.columns.tolist() \
-        for y in list_of_onehots_x if x.startswith(y)]
-
-    Y_array = dataframe[Y_cols].values
-    X_array = dataframe[X_cols].values
-    Y = np.reshape(Y_array, (Y_array.shape[0], Y_array.shape[1]))
+    #filling the new_dataframe with values
+    #averaging
+    for var in aggregate_variables:
+        my_df = first_user_df.value[first_user_df.variable == var]
+        day_grouper = my_df.groupby(pd.Grouper(freq='1D')).aggregate(np.mean)
+        day_grouper = day_grouper.rename('{}'.format(var))
+        for i,x in enumerate(day_grouper.index.values):
+            new_dataframe.loc[x, var] = day_grouper[i]
+    new_dataframe = new_dataframe.fillna(0)
+    #call - boolean. if a call is placed in the day then 1, else 0
+    #sms - boolean. if an sms is placed in the day then 1, else 0
+    Y_array = new_dataframe['mood'].values
+    X_array = new_dataframe.values
+    # Y = np.reshape(Y_array, (Y_array.shape[0], Y_array.shape[1]))
+    Y = np.reshape(Y_array, (Y_array.shape[0], 1))
     X = np.reshape(X_array, (X_array.shape[0], X_array.shape[1],1))
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, \
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, \
                                                             random_state=0)
 
     model_, kfold = classifier(X_train,Y_train)
     history = \
-        model_.fit(X_train, Y_train, epochs=15, validation_data=(X_test,Y_test))
+       model_.fit(X_train, Y_train,
+                  epochs=200,
+                  batch_size=1, 
+                  validation_data=(X_test,Y_test))
 
     return history
 
@@ -82,7 +86,12 @@ def main(argv):
 
     dataframe = load_dataframe_from_file('rnn_dataframes/{}_preprocessed.pkl'\
                                         .format(csv_name))
-    history = run_rnn(dataframe)
-
+    for user in dataframe.id.unique():
+        history = run_rnn(dataframe, user)
+        loss_acc_plots(history)
+        print(user, len(dataframe[dataframe.id == user]))
+        print(history.history['acc'][-1], history.history['val_acc'][-1])
+        print(history.history['loss'][-1], history.history['val_loss'][-1])
+        stop
 if __name__ == "__main__":
     main(sys.argv[1:])
