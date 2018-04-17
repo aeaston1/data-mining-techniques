@@ -85,7 +85,7 @@ def classifier(X,Y):
     NOF_Ysamples, NOF_outputs = Y.shape
     def baseline_model():
         model = Sequential()
-        model.add(LSTM(4, activation='sigmoid' \
+        model.add(LSTM(10, activation='softmax' \
                               , input_shape=(NOF_timesteps,NOF_input_dim)))
         model.add(Dense(NOF_outputs, activation='softmax'))
         # model.add(Dense(1, activation='sigmoid'))
@@ -96,12 +96,12 @@ def classifier(X,Y):
         return model
 
     model = KerasClassifier(build_fn=baseline_model,
-                                epochs=50,
-                                batch_size=20,
+                                epochs=20,
+                                batch_size=1,
                                 verbose=1)
     seed = 7
     np.random.seed(seed)
-    kfold = KFold(n_splits=2,
+    kfold = KFold(n_splits=10,
                   shuffle=True,
                   random_state=seed)
 

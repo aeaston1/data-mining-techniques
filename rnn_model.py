@@ -5,7 +5,7 @@ from utilities import classifier, load_dataframe_from_file, loss_acc_plots
 import datetime
 import tensorflow
 import keras
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -39,14 +39,14 @@ def run_rnn(dataframe, user=None):
     aggregate_variables = np.delete(unique_variables,0)
     aggregate_variables = np.delete(aggregate_variables,0)
 
-    # unique day dates
+    # unique day dates SLOW
     unique_dates = \
             first_user_df.index.map(lambda x: x.strftime('%Y-%m-%d')).unique()
     unique_dates = pd.to_datetime(unique_dates)
     new_dataframe = pd.DataFrame(index=unique_dates,columns=aggregate_variables)
 
     #filling the new_dataframe with values
-    #averaging
+    #averaging SLOW
     for var in aggregate_variables:
         my_df = first_user_df.value[first_user_df.variable == var]
         day_grouper = my_df.groupby(pd.Grouper(freq='1D')).aggregate(np.mean)
@@ -54,7 +54,7 @@ def run_rnn(dataframe, user=None):
         for i,x in enumerate(day_grouper.index.values):
             new_dataframe.loc[x, var] = day_grouper[i]
 
-    #summation
+    #summation SLOW
     for var in ['call', 'sms']:
         my_df = first_user_df.value[first_user_df.variable == var]
         day_grouper = my_df.groupby(pd.Grouper(freq='1D')).aggregate(np.sum)
@@ -104,10 +104,10 @@ def run_rnn(dataframe, user=None):
     history = \
        model_.fit(X_train, Y_train,
                   epochs=20,
-                  batch_size=5,
+                  batch_size=1,
                   validation_data=(X_test,Y_test))
 
-    return history
+    return history, model_, kfold, X_test, Y_test
 
 def main(argv):
     try:
@@ -134,7 +134,9 @@ def main(argv):
     #     print(history.history['acc'][-1], history.history['val_acc'][-1])
     #     print(history.history['loss'][-1], history.history['val_loss'][-1])
 
-    history = run_rnn(dataframe)
+    history, model_, kfold, X_test, Y_test = run_rnn(dataframe)
+    results = cross_val_score(model_, X_test, Y_test, cv=kfold)
+    print("Baseline: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
     loss_acc_plots(history)
     print("Accuracy : Validation Accuracy")
     print(history.history['acc'][-1], history.history['val_acc'][-1])
