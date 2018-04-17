@@ -87,8 +87,9 @@ def classifier(X,Y):
         model = Sequential()
         model.add(LSTM(4, activation='sigmoid' \
                               , input_shape=(NOF_timesteps,NOF_input_dim)))
-        model.add(Dense(1, activation='sigmoid'))
-        model.compile(loss='mean_squared_error',
+        model.add(Dense(NOF_outputs, activation='softmax'))
+        # model.add(Dense(1, activation='sigmoid'))
+        model.compile(loss='categorical_crossentropy',
                       optimizer='adam',
                       metrics=['accuracy'])
         print(model.summary())

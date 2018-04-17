@@ -33,10 +33,10 @@ def preprocess(dataframe):
     #scale the inputs in range 0->1 for each variable
     scaler = MinMaxScaler()
     for x in dataframe.variable.unique():
-        if not x in ['call', 'sms', 'activity']:
+        if not x in ['call', 'sms', 'activity', 'mood']:
             dataframe.value[dataframe.variable == x] = \
-                    scaler.fit_transform(dataframe.value[dataframe.variable == x] \
-                    .values.reshape(-1,1))
+                scaler.fit_transform(dataframe.value[dataframe.variable == x] \
+                .values.reshape(-1,1))
         else:
             continue
     dataframe = dataframe.set_index(dataframe.time)
