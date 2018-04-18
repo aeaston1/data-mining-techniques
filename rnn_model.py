@@ -1,7 +1,8 @@
 import sys,getopt
 import numpy as np
 import pandas as pd
-from utilities import classifier, load_dataframe_from_file, loss_acc_plots
+from utilities import classifier, regressor
+from utilities import load_dataframe_from_file, loss_acc_plots
 import datetime
 import tensorflow
 import keras
@@ -9,7 +10,7 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import MinMaxScaler
 
 
-def run_rnn(dataframe, user=None):
+def run_rnn_classifier(dataframe, optimizer, user=None):
     '''
     Run RNN model using dataframe input.
 
@@ -82,9 +83,9 @@ def run_rnn(dataframe, user=None):
 
     #scale call and sms sum in to range of 0 to 1
     scaler = MinMaxScaler()
-    scaled_call = scaler.fit_transform(new_dataframe.call.reshape(-1,1))
+    scaled_call = scaler.fit_transform(new_dataframe.call.values.reshape(-1,1))
     new_dataframe.call = scaled_call
-    scaled_sms = scaler.fit_transform(new_dataframe.sms.reshape(-1,1))
+    scaled_sms = scaler.fit_transform(new_dataframe.sms.values.reshape(-1,1))
     new_dataframe.sms = scaled_sms
 
     cols = sorted(set(new_dataframe.columns.values))[:10]
@@ -97,17 +98,21 @@ def run_rnn(dataframe, user=None):
     X = np.reshape(X_array, (X_array.shape[0], X_array.shape[1],1))
     # X = np.reshape(X_array, (X_array.shape[0],1 ,1))
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, \
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, \
                                                             random_state=0)
 
-    model_, kfold = classifier(X_train,Y_train)
+    model_, kfold = classifier(X_train,Y_train, optimizer)
+
     history = \
        model_.fit(X_train, Y_train,
-                  epochs=20,
+                  epochs=10,
                   batch_size=1,
                   validation_data=(X_test,Y_test))
 
-    return history, model_, kfold, X_test, Y_test
+    #grid search results
+    # grid_result = grid.fit(X, Y)
+
+    return history, model_, X_test, Y_test, kfold
 
 def main(argv):
     try:
@@ -133,15 +138,39 @@ def main(argv):
     #     print(user, len(dataframe[dataframe.id == user]))
     #     print(history.history['acc'][-1], history.history['val_acc'][-1])
     #     print(history.history['loss'][-1], history.history['val_loss'][-1])
-
-    history, model_, kfold, X_test, Y_test = run_rnn(dataframe)
-    results = cross_val_score(model_, X_test, Y_test, cv=kfold)
-    print("Baseline: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
-    loss_acc_plots(history)
-    print("Accuracy : Validation Accuracy")
-    print(history.history['acc'][-1], history.history['val_acc'][-1])
-    print("Loss : Validation Loss")
-    print(history.history['loss'][-1], history.history['val_loss'][-1])
+    # batch_size = [10, 20, 40, 60, 80, 100]
+    # epochs = [10, 50, 100]
+    optimizer = ['SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', \
+                                                                        'Nadam']
+    # learn_rate = [0.001, 0.01, 0.1, 0.2, 0.3]
+    # momentum = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9]
+    # init_mode = ['uniform', 'lecun_uniform', 'normal', 'zero', 'glorot_normal',\
+    #                                 'glorot_uniform', 'he_normal', 'he_uniform']
+    # activation = ['softmax', 'softplus', 'softsign', 'relu', 'tanh', \
+    #                                         'sigmoid', 'hard_sigmoid', 'linear']
+    # weight_constraint = [1, 2, 3, 4, 5]
+    # dropout_rate = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    # neurons = [1, 5, 10, 15, 20, 25, 30]
+    for opt in optimizer:
+        print(opt)
+        history, model_, X_test, Y_test, kfold = \
+                                        run_rnn_classifier(dataframe, opt)
+    # summarize results
+    # print("Best: %f using %s" % \
+    #                          (grid_result.best_score_,grid_result.best_params_))
+    # means = grid_result.cv_results_['mean_test_score']
+    # stds = grid_result.cv_results_['std_test_score']
+    # params = grid_result.cv_results_['params']
+    # for mean, stdev, param in zip(means, stds, params):
+    #     print("%f (%f) with: %r" % (mean, stdev, param))
+        results = cross_val_score(model_, X_test, Y_test, cv=kfold)
+        print("Baseline: %.2f%% (%.2f%%)" % \
+                                        (results.mean()*100, results.std()*100))
+        loss_acc_plots(history)
+        print("Accuracy : Validation Accuracy")
+        print(history.history['acc'][-1], history.history['val_acc'][-1])
+        print("Loss : Validation Loss")
+        print(history.history['loss'][-1], history.history['val_loss'][-1])
 
 if __name__ == "__main__":
     main(sys.argv[1:])
