@@ -87,7 +87,6 @@ def run_rnn_classifier(dataframe, user=None):
     new_dataframe.call = scaled_call
     scaled_sms = scaler.fit_transform(new_dataframe.sms.values.reshape(-1,1))
     new_dataframe.sms = scaled_sms
-
     cols = sorted(set(new_dataframe.columns.values))[:10]
     Y_cols = sorted(set(cols), key=float)
     X_cols = [x for x in new_dataframe.columns.values if x not in Y_cols]
