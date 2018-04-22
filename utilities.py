@@ -5,8 +5,10 @@ import pickle
 from keras.wrappers.scikit_learn import KerasClassifier, KerasRegressor
 from sklearn.model_selection import KFold, GridSearchCV
 from keras.models import Sequential
-from keras.layers import Dense, SimpleRNN, LSTM
+from keras.layers import Dense, SimpleRNN, LSTM, Dropout
+from keras.optimizers import SGD
 import matplotlib.pyplot as plt
+from keras.constraints import maxnorm
 
 def write_dataframe_to_file(path_to_file, dataframe):
     '''
@@ -77,20 +79,23 @@ def csv_to_dataframe(csv_file):
     dataframe = pd.read_csv('{}.csv'.format(csv_file))
     return dataframe
 
-def classifier(X,Y, optimizer):
+def classifier(X,Y):
     '''
     Nonsense to deal with a KerasClassifier and save it to file
     '''
     NOF_Xsamples, NOF_timesteps, NOF_input_dim = X.shape
     NOF_Ysamples, NOF_outputs = Y.shape
-    def baseline_model(optimiser=optimizer):
+    def baseline_model():
         model = Sequential()
         model.add(LSTM(1, activation='softmax' \
                               , input_shape=(NOF_timesteps,NOF_input_dim)
-                              ))
+                              , kernel_initializer='uniform'
+                              , kernel_constraint=maxnorm(1)))
+        model.add(Dropout(0.0))
         model.add(Dense(NOF_outputs, activation='softmax'))
+        optimizer = SGD(lr=0.01, momentum=0.0)
         model.compile(loss='categorical_crossentropy',
-                      optimizer=optimiser,
+                      optimizer=optimizer,
                       metrics=['accuracy'])
         # print(model.summary())
         return model
@@ -98,7 +103,7 @@ def classifier(X,Y, optimizer):
     model = KerasClassifier(build_fn=baseline_model,
                                 epochs=10, #used for running model with kfold
                                 batch_size=1, #not with grid search
-                                verbose=0)
+                                verbose=1)
 
     seed = 7
     np.random.seed(seed)
@@ -119,8 +124,12 @@ def classifier(X,Y, optimizer):
     # weight_constraint = [1, 2, 3, 4, 5]
     # dropout_rate = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     # neurons = [1, 5, 10, 15, 20, 25, 30]
-    # param_grid = dict(activation=activation)
-    # grid = GridSearchCV(estimator=model, param_grid=param_grid)
+    # print('')
+    # print('GRID SEARCH HERE')
+    # print('')
+    # param_grid = dict(neurons=neurons)
+    # grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=2)
+
 
     return model, kfold
 
@@ -132,7 +141,7 @@ def regressor(X,Y):
     NOF_Ysamples, NOF_outputs = Y.shape
     def baseline_model():
         model = Sequential()
-        model.add(LSTM(10, activation='sigmoid' \
+        model.add(SimpleRNN(30, activation='sigmoid' \
                               , input_shape=(NOF_timesteps,NOF_input_dim)))
         model.add(Dense(1, activation='sigmoid')) # regressor
         model.compile(loss='mean_squared_error',
@@ -142,16 +151,16 @@ def regressor(X,Y):
         return model
 
     model = KerasRegressor(build_fn=baseline_model,
-                                epochs=20,
+                                epochs=100,
                                 batch_size=1,
-                                verbose=0)
+                                verbose=1)
     seed = 7
     np.random.seed(seed)
-    kfold = KFold(n_splits=10,
-                  shuffle=False,
-                  random_state=seed)
+    # kfold = KFold(n_splits=1,
+    #               shuffle=False,
+    #               random_state=seed)
 
-    return model, kfold
+    return model
 
 def loss_acc_plots(history_):
     fig, (ax0, ax1) = plt.subplots(nrows=2, figsize=(7, 9.6))
